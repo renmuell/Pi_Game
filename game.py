@@ -1,172 +1,65 @@
 #!/usr/bin/python
 import sys
 import time
-
+from GamePad import GamePad, GAMEPAD_BUTTON, GAMEPAD_AXIS_DIRECTION
 from sense_hat import SenseHat
-from evdev import InputDevice, list_devices, ecodes, categorize
-from pprint import pprint
 
 print("Press Ctrl-C to quit")
 time.sleep(1)
 
-# -----------------------------------------------------------------------------
-# Gamepad
-# -----------------------------------------------------------------------------
-
-foundGamepad = True
-try:
-    gamepad = InputDevice('/dev/input/event0')
-except OSError:
-    foundGamepad = False
-
-if not(foundGamepad):
-    print('USB Gamepad not found. Aborting ...')
-    sys.exit()
-
-yBtn = 291
-xBtn = 288
-aBtn = 289
-bBtn = 290
-
-start = 297
-select = 296
-
-lTrig = 292
-rTrig = 293
-
-axisMin = 0
-axisMid = 127
-axisMax = 255
-
-axisY = 1
-axisX = 0
-
-yBtnPressed = False
-xBtnPressed = False
-aBtnPressed = False
-bBtnPressed = False
-
-startPressed = False
-selectPressed = False
-
-lTrigPressed = False
-rTrigPressed = False
-
-topPressed = False
-bottomPressed = False
-leftPressed = False
-rightPressed = False
-
-def ReadGamePad ():
-    global lTrigPressed
-    global rTrigPressed
-    global startPressed
-    global bottomPressed
-    global topPressed
-    global leftPressed
-    global rightPressed
-    global bBtnPressed
-    try:
-        for event in gamepad.read():
-            if event.type == ecodes.EV_KEY:
-                if event.value == 1:
-                    if event.code == yBtn:
-                        yBtnPressed = True
-                    if event.code == xBtn:
-                        xBtnPressed = True
-                    if event.code == aBtn:
-                        aBtnPressed = True
-                    if event.code == bBtn:
-                        bBtnPressed = True
-                    if event.code == start:
-                        startPressed = True
-                    if event.code == select:
-                        selectPressed = True
-                    if event.code == lTrig:
-                        lTrigPressed = True
-                    if event.code == rTrig:
-                        rTrigPressed = True
-                if event.value == 0:
-                    if event.code == yBtn:
-                        yBtnPressed = False
-                    if event.code == xBtn:
-                        xBtnPressed = False
-                    if event.code == aBtn:
-                        aBtnPressed = False
-                    if event.code == bBtn:
-                        bBtnPressed = False
-                    if event.code == start:
-                        startPressed = False
-                    if event.code == select:
-                        selectPressed = False
-                    if event.code == lTrig:
-                        lTrigPressed = False
-                    if event.code == rTrig:
-                        rTrigPressed = False 
-            if event.type == ecodes.EV_ABS:
-                if event.code == axisX:
-                    if event.value == axisMin:
-                        leftPressed = True
-                    if event.value == axisMid:
-                        leftPressed = False
-                        rightPressed = False
-                    if event.value == axisMax:
-                       rightPressed = True
-                if event.code == axisY:
-                    if event.value == axisMin:
-                        topPressed = True
-                    if event.value == axisMid:
-                        topPressed = False
-                        bottomPressed = False
-                    if event.value == axisMax:
-                        bottomPressed = True
-    except IOError:
-        return
-    return
+gamepad = GamePad()
 
 # -----------------------------------------------------------------------------
 # Screen
 # -----------------------------------------------------------------------------
 
 sense = SenseHat()
+
 sense.low_light = True
+
+
 
 r = [255, 0, 0]
 b = [0, 0, 255]
 g = [0, 255, 0]
-O = [0,0,0]
+E = [0,0,0]
+O = [8,8,8]
+
+t = [78,205,196]
+rP = [255,107,107]
+gP = [199,244,100]
+ye = [255,247,114]
 
 def ShowScreen(player_x, player_y, playerDirectionX, playerDirectionY, projectiles):
-    global r
-    global O
-    global b
-    global g
     global sense
     player_x = int(round((player_x)))
     player_y = int(round((player_y)))
     pixel = [
         O,O,O,O,O,O,O,O,
-        O,O,O,O,O,O,O,O,
-        O,O,O,O,O,O,O,O,
-        O,O,O,O,O,O,O,O,
-        O,O,O,O,O,O,O,O,
-        O,O,O,O,O,O,O,O,
-        O,O,O,O,O,O,O,O,
+        E,E,E,E,E,E,E,O,
+        O,E,E,E,E,E,E,O,
+        O,E,E,E,E,E,E,O,
+        O,E,O,O,E,E,E,O,
+        O,E,E,O,E,E,E,O,
+        O,E,E,O,E,E,E,O,
         O,O,O,O,O,O,O,O
     ]
     player_look_x = player_x + playerDirectionX
     player_look_y = player_y + playerDirectionY
 
-    pixel[(((player_y-1)*8) + (player_x-1))] = b
+    pixel[(((player_y-1)*8) + (player_x-1))] = t
     if (player_look_x>0 and player_look_x < 9  and player_look_y > 0 and player_look_y <9) :
-        pixel[(((player_look_y-1)*8) + (player_look_x-1))] = r
+        pixel[(((player_look_y-1)*8) + (player_look_x-1))] = ye
 
 
     for projectile in projectiles:
         if (projectile[4]) :
             p_x = int(round(projectile[0]))
             p_y = int(round(projectile[1]))
-            pixel[(((p_y-1)*8) + (p_x-1))] = g
+            pixel[(((p_y-1)*8) + (p_x-1))] = gP
+
+    # red shift test
+    #pixel = map(lambda c: [ c[0]*8 if c[0]*8 < 256 else 255 ,c[1],c[2]], pixel)
 
     sense.set_pixels(pixel)
 
@@ -175,7 +68,7 @@ def ShowScreen(player_x, player_y, playerDirectionX, playerDirectionY, projectil
 # -----------------------------------------------------------------------------
 
 player_x = 1
-player_y = 0
+player_y = 1
 playerSpeed = 10
 playerDirectionX = 1
 playerDirectionY = 0
@@ -190,16 +83,10 @@ def update_game (dt) :
     global player_x
     global playerSpeed
     global player_y
-    global bottomPressed
-    global topPressed
-    global rightPressed
-    global leftPressed
-    global bBtnPressed
     global playerDirectionX
     global playerDirectionY
     global game_is_running
-    global rTrigPressed
-    global lTrigPressed
+    global gamepad
 
     for projectile in projectiles:
         if (projectile[4]) :
@@ -208,39 +95,42 @@ def update_game (dt) :
             if (projectile[0]<1 or projectile[0] > 8  or projectile[1]<1 or projectile[1] > 8) :
                 projectile[4] = False
 
-    ReadGamePad()
+    gamepad.update()
 
-    if (bottomPressed):
+    if (gamepad.pressed[GAMEPAD_AXIS_DIRECTION.DOWN]):
         player_y += (playerSpeed*dt)
         playerDirectionY = 1
         playerDirectionX = 0
-    if (topPressed) : 
+    if (gamepad.pressed[GAMEPAD_AXIS_DIRECTION.UP]) : 
         player_y -= (playerSpeed*dt)
         playerDirectionY = -1
         playerDirectionX = 0
+
     if (player_y < 1) :
         player_y = 1
     if (player_y > 8) :
         player_y = 8
     
-    if (leftPressed):
+    if (gamepad.pressed[GAMEPAD_AXIS_DIRECTION.LEFT]):
         player_x -= (playerSpeed*dt)
         playerDirectionY = 0
         playerDirectionX = -1
-    if (rightPressed) : 
+    if (gamepad.pressed[GAMEPAD_AXIS_DIRECTION.RIGTH]) : 
         player_x += (playerSpeed*dt)
         playerDirectionY = 0
         playerDirectionX = 1
-    if (lTrigPressed) :
+
+    if (gamepad.pressed[GAMEPAD_BUTTON.LEFT_TRIGGER]) :
         player_x -= (playerSpeed*dt)
-    if (rTrigPressed) :
+    if (gamepad.pressed[GAMEPAD_BUTTON.RIGHT_TRIGGER]) :
         player_x += (playerSpeed*dt)
+
     if (player_x < 1) :
         player_x = 1
     if (player_x > 8) :
         player_x = 8
 
-    if (bBtnPressed) :
+    if (gamepad.pressed[GAMEPAD_BUTTON.B]) :
         projectiles.append([
             player_x,
             player_y,
@@ -249,7 +139,7 @@ def update_game (dt) :
             True
         ])
 
-    if (startPressed):
+    if (gamepad.pressed[GAMEPAD_BUTTON.START]) :
         game_is_running = False
 
 # -----------------------------------------------------------------------------
