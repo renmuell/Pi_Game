@@ -1,10 +1,17 @@
 # -----------------------------------------------------------------------------
 # Gamepad
 # -----------------------------------------------------------------------------
-
+import time
 import sys
 from enum import Enum
 from evdev import InputDevice, list_devices, ecodes, categorize
+
+class GAMEPAD_SENSE_BUTTON (Enum) :
+    UP = 103
+    DOWN = 108
+    LEFT = 105
+    RIGTH = 106
+    MIDDLE = 28
 
 class GAMEPAD_BUTTON (Enum) : 
     X = 288
@@ -54,16 +61,26 @@ class GamePad:
 
     def __init__(self):
         try:
+            time.sleep(1)
             print('Select Gamepad')
             foundGamepad = True
 
             devices = [InputDevice(fn) for fn in list_devices()]
             
             for num, dev in enumerate(devices):
-                print('[' + str(num) + '] ' + dev.name)
+                print(dev.name)
 
-            self.device = devices[int(input())]
+            print('Press any button of these gamepads')
 
+            while True:
+                for device in devices:
+                    try:
+                        for event in device.read():
+                            self.device = device
+                            time.sleep(1)
+                            return
+                    except IOError:
+                        continue                 
         except OSError:
             foundGamepad = False
 
@@ -72,6 +89,30 @@ class GamePad:
             sys.exit()
 
     def update (self):
+        if self.device.name == "USB Gamepad ":
+            self.updateUSBGamepad()
+        if self.device.name == "Raspberry Pi Sense HAT Joystick":
+            self.updateRaspberryPiSenseHatJoystick()
+
+    def updateRaspberryPiSenseHatJoystick (self):
+        try:
+            for event in self.device.read():
+                if event.type == ecodes.EV_KEY:
+                    if GAMEPAD_SENSE_BUTTON(event.code) == GAMEPAD_SENSE_BUTTON.UP :
+                        self.pressed[GAMEPAD_AXIS_DIRECTION.UP] = event.value == 1
+                    if GAMEPAD_SENSE_BUTTON(event.code) == GAMEPAD_SENSE_BUTTON.DOWN :
+                        self.pressed[GAMEPAD_AXIS_DIRECTION.DOWN] = event.value == 1
+                    if GAMEPAD_SENSE_BUTTON(event.code) == GAMEPAD_SENSE_BUTTON.LEFT :
+                        self.pressed[GAMEPAD_AXIS_DIRECTION.LEFT] = event.value == 1
+                    if GAMEPAD_SENSE_BUTTON(event.code) == GAMEPAD_SENSE_BUTTON.RIGTH :
+                        self.pressed[GAMEPAD_AXIS_DIRECTION.RIGTH] = event.value == 1
+                    if GAMEPAD_SENSE_BUTTON(event.code) == GAMEPAD_SENSE_BUTTON.MIDDLE :
+                        self.pressed[GAMEPAD_BUTTON.B] = event.value == 1
+        except IOError:
+            return
+        return
+
+    def updateUSBGamepad (self):
         try:
             for event in self.device.read():
                 if event.type == ecodes.EV_KEY:
